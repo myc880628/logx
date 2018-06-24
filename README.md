@@ -1,1 +1,1 @@
-# logx a golang logger
+# an esay golang logger
