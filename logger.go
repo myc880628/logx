@@ -52,7 +52,10 @@ func (logger *Logger) Error(args ...interface{}) {
 
 func (logger *Logger) Fatal(args ...interface{}) {
 	logger.print(FatalLevel, args...)
-	os.Exit(1)
+}
+
+func (logger *Logger) Panic(args ...interface{}) {
+	logger.print(PanicLevel, args...)
 }
 
 func (logger *Logger) Debugf(format string, args ...interface{}) {
@@ -69,7 +72,10 @@ func (logger *Logger) Errorf(format string, args ...interface{}) {
 
 func (logger *Logger) Fatalf(format string, args ...interface{}) {
 	logger.printf(FatalLevel, format, args...)
-	os.Exit(1)
+}
+
+func (logger *Logger) Panicf(format string, args ...interface{}) {
+	logger.printf(PanicLevel, format, args...)
 }
 
 func (logger *Logger) printf(level Level, format string, args ...interface{}) {
@@ -91,5 +97,10 @@ func (logger *Logger) output(level Level, message string) {
 	}
 	if err := logger.writer.Write(r); err != nil {
 		fmt.Fprintf(os.Stderr, "logger: write log record error, %s", err)
+	}
+	if FatalLevel == level {
+		os.Exit(1)
+	} else if PanicLevel == level {
+		panic(message)
 	}
 }
