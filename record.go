@@ -74,8 +74,8 @@ func newRecord(level Level, line int, message, prefix, fn, file string) *record 
 		level:   level,
 		line:    uint32(line),
 		prefix:  prefix,
-		file:    file,
 		fn:      fn,
+		file:    file,
 		message: message,
 	}
 }
