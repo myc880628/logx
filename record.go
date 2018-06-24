@@ -1,4 +1,4 @@
-package logx
+package log2
 
 import (
 	"time"
@@ -68,11 +68,14 @@ func (r *record) Stack(buffer []byte) int {
 	return getStack(r.pcs, buffer)
 }
 
-func newRecord(level Level, message, prefix string) *record {
+func newRecord(level Level, line int, message, prefix, fn, file string) *record {
 	return &record{
-		level:   level,
 		t:       time.Now(),
-		message: message,
+		level:   level,
+		line:    uint32(line),
 		prefix:  prefix,
+		file:    file,
+		fn:      fn,
+		message: message,
 	}
 }
