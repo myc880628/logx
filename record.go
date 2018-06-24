@@ -1,6 +1,7 @@
 package logx
 
 import (
+	"runtime"
 	"time"
 )
 
@@ -68,7 +69,15 @@ func (r *record) Stack(buffer []byte) int {
 	return getStack(r.pcs, buffer)
 }
 
-func newRecord(level Level, line int, message, prefix, fn, file string) *record {
+func newRecord(level Level, message, prefix string) *record {
+	fn := "???"
+	pc, file, line, ok := runtime.Caller(4)
+	if !ok {
+		file = "???"
+		line = 0
+	} else if f := runtime.FuncForPC(pc); f != nil {
+		fn = f.Name()
+	}
 	return &record{
 		t:       time.Now(),
 		level:   level,
