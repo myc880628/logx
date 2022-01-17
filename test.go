@@ -16,9 +16,9 @@ type (
 	Queue struct {
 		size     int32
 		capacity int32
-		tail     uint32
-		_        [cacheLineSize - 12]byte
 		head     uint32
+		_        [cacheLineSize - 4]byte
+		tail     uint32
 		state    []uint32
 		elements []interface{}
 	}
@@ -40,17 +40,14 @@ func (q *Queue) Push(element interface{}) bool {
 	for q.size < q.capacity {
 		tail := q.tail
 		if !atomic.CompareAndSwapUint32(&q.state[tail], 0, 1) {
-			a++
 			runtime.Gosched()
 			continue
 		}
-		if q.tail != tail {
+		if !atomic.CompareAndSwapUint32(&q.tail, tail, (tail+1)%uint32(q.capacity)) {
 			atomic.StoreUint32(&q.state[tail], 0)
-			b++
 			continue
 		}
 		q.elements[tail] = element
-		atomic.StoreUint32(&q.tail, (tail+1)%uint32(q.capacity))
 		atomic.StoreUint32(&q.state[tail], 2)
 		atomic.AddInt32(&q.size, 1)
 		return true
@@ -60,6 +57,10 @@ func (q *Queue) Push(element interface{}) bool {
 
 var (
 	x, y, z int
+)
+
+var (
+	count int32
 )
 
 func (q *Queue) Pop() (interface{}, bool) {
@@ -90,10 +91,11 @@ const (
 )
 
 func main() {
-	q := NewQueue(NumOpertions * NumGroutines)
+	q := NewQueue(NumGroutines * NumOpertions)
 
 	// q := &list.List{}
 	// q = q.Init()
+	// var set map[int32]bool = make(map[int32]bool, 10000)
 	// var mu sync.Mutex
 	// ***********
 
@@ -106,8 +108,9 @@ func main() {
 				wg.Done()
 			}()
 			for j := 0; j < NumOpertions; j++ {
-				if !q.Push(j) {
-					println("XXXXX")
+				v := atomic.AddInt32(&count, 1)
+				if ok := q.Push(v); !ok {
+					println("XXX")
 				}
 				// mu.Lock()
 				// q.PushBack(j)
@@ -125,6 +128,9 @@ func main() {
 			for j := 0; j < NumOpertions; j++ {
 				for {
 					if _, ok := q.Pop(); ok {
+						// mu.Lock()
+						// set[v.(int32)] = true
+						// mu.Unlock()
 						break
 					}
 				}
