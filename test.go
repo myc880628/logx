@@ -28,6 +28,9 @@ type (
 )
 
 func NewQueue(capacity int32) *Queue {
+	if capacity < 0 {
+		panic("NewQueue error: negatice capacity")
+	}
 	return &Queue{
 		capacity0: capacity,
 		capacity1: capacity,
