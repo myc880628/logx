@@ -14,21 +14,25 @@ const (
 
 type (
 	Queue struct {
-		size     int32
-		capacity int32
-		head     uint32
-		_        [cacheLineSize - 4]byte
-		tail     uint32
-		state    []uint32
-		elements []interface{}
+		size      int32
+		_         [cacheLineSize - 4]byte
+		head      int32
+		capacity0 int32
+		_         [cacheLineSize - 8]byte
+		tail      int32
+		capacity1 int32
+		_         [cacheLineSize - 8]byte
+		state     []int32
+		elements  []interface{}
 	}
 )
 
 func NewQueue(capacity int32) *Queue {
 	return &Queue{
-		capacity: capacity,
-		state:    make([]uint32, capacity),
-		elements: make([]interface{}, capacity),
+		capacity0: capacity,
+		capacity1: capacity,
+		state:     make([]int32, capacity),
+		elements:  make([]interface{}, capacity),
 	}
 }
 
@@ -37,18 +41,18 @@ var (
 )
 
 func (q *Queue) Push(element interface{}) bool {
-	for q.size < q.capacity {
+	for q.size < q.capacity1 {
 		tail := q.tail
-		if !atomic.CompareAndSwapUint32(&q.state[tail], 0, 1) {
+		if !atomic.CompareAndSwapInt32(&q.state[tail], 0, 1) {
 			runtime.Gosched()
 			continue
 		}
-		if !atomic.CompareAndSwapUint32(&q.tail, tail, (tail+1)%uint32(q.capacity)) {
-			atomic.StoreUint32(&q.state[tail], 0)
+		if !atomic.CompareAndSwapInt32(&q.tail, tail, (tail+1)%q.capacity1) {
+			atomic.StoreInt32(&q.state[tail], 0)
 			continue
 		}
 		q.elements[tail] = element
-		atomic.StoreUint32(&q.state[tail], 2)
+		atomic.StoreInt32(&q.state[tail], 2)
 		atomic.AddInt32(&q.size, 1)
 		return true
 	}
@@ -66,19 +70,19 @@ var (
 func (q *Queue) Pop() (interface{}, bool) {
 	for q.size > 0 {
 		head := q.head
-		if !atomic.CompareAndSwapUint32(&q.state[head], 2, 3) {
+		if !atomic.CompareAndSwapInt32(&q.state[head], 2, 3) {
 			runtime.Gosched()
 			x++
 			continue
 		}
 		if q.head != head {
 			y++
-			atomic.StoreUint32(&q.state[head], 2)
+			atomic.StoreInt32(&q.state[head], 2)
 			continue
 		}
 		element := q.elements[head]
-		atomic.StoreUint32(&q.head, (head+1)%uint32(q.capacity))
-		atomic.StoreUint32(&q.state[head], 0)
+		atomic.StoreInt32(&q.head, (head+1)%q.capacity0)
+		atomic.StoreInt32(&q.state[head], 0)
 		atomic.AddInt32(&q.size, -1)
 		return element, true
 	}
