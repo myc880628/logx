@@ -41,7 +41,7 @@ func (p *Pool) Start() {
 
 func (p *Pool) RunInBatch(function func(interface{}), arguments []interface{}) {
 	if len(arguments) > cap(p.taskQueue) {
-		panic("RunBatch error: invalid arguments number")
+		panic("RunInBatch error: invalid arguments number")
 	}
 	for _, argument := range arguments {
 		p.taskQueue <- &task{
